@@ -94,6 +94,7 @@
     </table>
 
     <script>
+        let tableBody = document.getElementById("countTable").getElementsByTagName('tbody')[0];
         let interval = document.getElementById('interval');
         let intervalValue, lowerLimit = 0, upperLimit = 0;
         let asyncInterval = null;
@@ -137,6 +138,7 @@
                         upperLimit += intervalValue;
                     }
                     else {
+                        tableBody.innerHTML = null;
                         upperLimit += intervalValue;
                     }
 
@@ -189,8 +191,6 @@
         }
 
         function updateOutputs(value1, value2) {
-            let tableBody = document.getElementById("countTable").getElementsByTagName('tbody')[0];
-
             let newRow = tableBody.insertRow(tableBody.rows.length);
 
             let cell1 = newRow.insertCell(0);
