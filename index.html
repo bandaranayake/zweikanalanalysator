@@ -148,36 +148,59 @@
 
       if (!error) {
         errorLabel.style.display = "none";
-        interval = setInterval(() => {
-          const data = {
-            ch1uld: ch1uldValue,
-            ch1lld: ch1lldValue,
-            ch2uld: ch2uldValue,
-            ch2lld: ch2lldValue,
-          };
+        timeOutput = 0;
 
-          const options = {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-          };
+        const data = {
+          ch1uld: ch1uldValue,
+          ch1lld: ch1lldValue,
+          ch2uld: ch2uldValue,
+          ch2lld: ch2lldValue,
+        };
 
-          fetch("/configure", options)
-            .then(response => {
-              if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-              }
-              return response.json();
-            })
-            .then(data => {
-              console.log('Response:', data);
-            })
-            .catch(fetchError => {
-              error = fetchError;
-            });
-        }, 1000);
+        const options = {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        };
+
+        fetch("/configure", options)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then(data => {
+            console.log('Response: ', data);
+            interval = setInterval(() => {
+              const fetchOptions = {
+                method: 'GET'
+              };
+
+              fetch("/results", fetchOptions)
+                .then(response => {
+                  if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                  }
+                  return response.json();
+                })
+                .then(data => {
+                  ch1Output = data.ch1Output;
+                  ch2Output = data.ch2Output;
+                  timeOutput = timeOutput + 1;
+
+                  updateOutputs();
+                })
+                .catch(fetchError => {
+                  error = fetchError;
+                });
+            }, 1000);
+          })
+          .catch(fetchError => {
+            error = fetchError;
+          });
       }
 
       if (error) {
