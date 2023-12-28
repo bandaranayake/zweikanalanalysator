@@ -79,6 +79,7 @@
         <span id="errorLabel"></span>
     </div>
 
+    <a href="/"><button style="background-color: #4caf50">Home</button></a>
     <button onclick="onStartClick()" style="background-color: #008CBA">Start</button>
     <button onclick="onStopClick()" style="background-color: #f44336">Stop</button>
 
@@ -142,12 +143,11 @@
                         upperLimit += intervalValue;
                     }
 
-                    if (upperLimit > 4096) {
+                    if (upperLimit > 4096 + intervalValue) {
                         onStopClick();
                     }
                     else {
                         const data = {
-                            intervalValue: intervalValue,
                             lowerLimit: lowerLimit,
                             upperLimit: upperLimit
                         };
@@ -168,13 +168,15 @@
                                 return response.json();
                             })
                             .then(data => {
-                                updateOutputs(lowerLimit + " - " + upperLimit, data.count);
+                                if (data.count !== -1) {
+                                    updateOutputs((lowerLimit - intervalValue) + " - " + (upperLimit - intervalValue), data.count);
+                                }
                             })
                             .catch(fetchError => {
                                 error = fetchError;
                             });
                     }
-                }, 1000);
+                }, 10000);
             }
 
             if (error) {
