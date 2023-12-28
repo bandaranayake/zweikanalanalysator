@@ -1,7 +1,7 @@
 <html>
 
 <head>
-  <title>Title</title>
+  <title>ZWEIKANALANALYSATOR</title>
   <style>
     body {
       background-color: #f4f4f4;
@@ -33,6 +33,11 @@
       margin: 10px 0
     }
 
+    a {
+      text-decoration: none;
+      color: #fff;
+    }
+
     .container {
       margin-bottom: 20px
     }
@@ -51,7 +56,7 @@
 
 <body>
 
-  <h1>Title</h1>
+  <h1>ZWEIKANALANALYSATOR</h1>
 
   <div class="container">
     <label for="ch1uld">CH1ULD:</label>
@@ -77,6 +82,7 @@
     <span id="errorLabel"></span>
   </div>
 
+  <a href="/calibrate"><button style="background-color: #4caf50">Calibrate</button></a>
   <button onclick="onStartClick()" style="background-color: #008CBA">Start</button>
   <button onclick="onStopClick()" style="background-color: #f44336">Stop</button>
   <button onclick="onResetClick()" style="background-color: #555">Reset</button>
@@ -99,7 +105,7 @@
     let interval = null;
 
     function validateInput(value, id) {
-      document.getElementById(id).value = validate(value, id);
+      document.getElementById(id).value = validate(value);
     }
 
     function validate(value) {

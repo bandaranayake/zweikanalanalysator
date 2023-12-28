@@ -1,0 +1,205 @@
+<html>
+
+<head>
+    <title>ZWEIKANALANALYSATOR</title>
+    <style>
+        body {
+            background-color: #f4f4f4;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            text-align: center
+        }
+
+        h1 {
+            color: #333
+        }
+
+        input {
+            margin-left: 10px;
+            padding: 5px
+        }
+
+        button {
+            border: none;
+            border-radius: 5px;
+            color: #fff;
+            cursor: pointer;
+            margin-right: 5px;
+            padding: 10px 20px
+        }
+
+        p {
+            margin: 10px 0
+        }
+
+        a {
+            text-decoration: none;
+            color: #fff;
+        }
+
+        table {
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        th,
+        td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .container {
+            margin-bottom: 20px
+        }
+
+        .output-container {
+            font-size: 18px;
+            margin-top: 20px
+        }
+
+        #errorLabel {
+            color: #f44336;
+            font-size: 1.5vh;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>ZWEIKANALANALYSATOR - CALIBRATOR</h1>
+
+    <div class="container">
+        <label for="interval">Interval:</label>
+        <input type="number" id="interval" placeholder="Enter value" onchange="validateInput(this.value)">
+    </div>
+
+    <div class="container">
+        <span id="errorLabel"></span>
+    </div>
+
+    <button onclick="onStartClick()" style="background-color: #008CBA">Start</button>
+    <button onclick="onStopClick()" style="background-color: #f44336">Stop</button>
+
+    <table id="countTable" class="output-container">
+        <thead>
+            <tr>
+                <th>Limit</th>
+                <th>Count</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <script>
+        let interval = document.getElementById('interval');
+        let intervalValue, lowerLimit = 0, upperLimit = 0;
+        let asyncInterval = null;
+
+        function validateInput(value, id) {
+            interval.value = validate(value);
+        }
+
+        function validate(value) {
+            let parsedValue = parseInt(value);
+
+            if (parsedValue > 4096) {
+                return 4096;
+            }
+            else if (parsedValue < 1) {
+                return 1;
+            }
+            else {
+                return parsedValue;
+            }
+        }
+
+        function onStartClick() {
+            intervalValue = validate(interval.value);
+
+            let error = null;
+
+            if (!intervalValue) {
+                error = "Enter a value between 1 and 4096";
+            }
+            else if (asyncInterval != null) {
+                error = "Please terminate the running process before proceeding";
+            }
+
+            if (!error) {
+                errorLabel.style.display = "none";
+
+                asyncInterval = setInterval(() => {
+                    if (upperLimit !== 0) {
+                        lowerLimit += intervalValue;
+                        upperLimit += intervalValue;
+                    }
+                    else {
+                        upperLimit += intervalValue;
+                    }
+
+                    if (upperLimit > 4096) {
+                        onStopClick();
+                    }
+                    else {
+                        const data = {
+                            intervalValue: intervalValue,
+                            lowerLimit: lowerLimit,
+                            upperLimit: upperLimit
+                        };
+
+                        const options = {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(data)
+                        };
+
+                        fetch("/calibrate", options)
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error(`HTTP error! Status: ${response.status}`);
+                                }
+                                return response.json();
+                            })
+                            .then(data => {
+                                updateOutputs(lowerLimit + " - " + upperLimit, data.count);
+                            })
+                            .catch(fetchError => {
+                                error = fetchError;
+                            });
+                    }
+                }, 1000);
+            }
+
+            if (error) {
+                errorLabel.innerText = error;
+                errorLabel.style.display = "inline";
+            }
+        }
+
+        function onStopClick() {
+            clearInterval(asyncInterval);
+            asyncInterval = null;
+            lowerLimit = 0;
+            upperLimit = 0;
+        }
+
+        function updateOutputs(value1, value2) {
+            let tableBody = document.getElementById("countTable").getElementsByTagName('tbody')[0];
+
+            let newRow = tableBody.insertRow(tableBody.rows.length);
+
+            let cell1 = newRow.insertCell(0);
+            cell1.innerHTML = value1;
+
+            let cell2 = newRow.insertCell(1);
+            cell2.innerHTML = value2;
+        }
+    </script>
+</body>
+
+</html>
