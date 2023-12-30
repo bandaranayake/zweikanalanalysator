@@ -2,21 +2,46 @@
 #include <ESP8266WebServer.h>
 #include <ArduinoJson.h>
 
+#define CH1_pin 32
+#define ULD1_pin 35
+#define CH2_pin 33
+#define ULD2_pin 25
+
 const char *ssid = "";
 const char *password = "";
+
+int ch1Value;
+int ch2Value;
+int uld1Value;
+int uld2Value;
+
 int ch1Output;
 int ch2Output;
 
 ESP8266WebServer server(80);
 
+Adafruit_MCP4728 mcp;
+
 void setup() {
   Serial.begin(115200);
+
+  if (!mcp.begin()) {
+    Serial.println("Failed to find MCP4728 chip");
+    while (1) {
+      delay(10);
+    }
+  }
 
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     delay(1000);
     Serial.println("Connecting to WiFi...");
   }
+
+  attachInterrupt(CH1_pin, countCH1, FALLING);
+  attachInterrupt(ULD1_pin, countULD1, FALLING);
+  attachInterrupt(CH2_pin, countCH2, FALLING);
+  attachInterrupt(ULD2_pin, countULD2, FALLING);
 
   server.on("/", HTTP_GET, handleRoot);
   server.on("/calibrate", HTTP_GET, handleCalibrateGet);
@@ -31,6 +56,22 @@ void setup() {
 
 void loop() {
   server.handleClient();
+}
+
+void IRAM_ATTR countCH1() {
+  ch1Value = ch1Value + 1;
+}
+
+void IRAM_ATTR countCH2() {
+  ch2Value = ch2Value + 1;
+}
+
+void IRAM_ATTR countULD1() {
+  uld1Value = uld1Value + 1;
+}
+
+void IRAM_ATTR countULD2() {
+  uld2Value = uld2Value + 1;
 }
 
 void handleRoot() {
@@ -58,21 +99,20 @@ void handleCalibratePost() {
 
   int lowerLimit = jsonDocument["lowerLimit"].as<int>();
   int upperLimit = jsonDocument["upperLimit"].as<int>();
-  int count = ch1Output;
-  ch1Output = 0;
+  int count = calcRealCount(ch1Value, uld1Value);
 
   if (lowerLimit == 0) {
     count = -1;
   }
 
   if (upperLimit < 4096) {
-    ch1Output = lowerLimit + upperLimit;
+    ch1Value = 0;
+    uld1Value = 0;
   }
 
   String response = "{\"count\":" + String(count) + "}";
   server.send(200, "text/plain", response);
 }
-
 
 void handleConfigPost() {
   String jsonBody = server.arg("plain");
@@ -92,17 +132,25 @@ void handleConfigPost() {
   int ch2uld = jsonDocument["ch2uld"].as<int>();
   int ch2lld = jsonDocument["ch2lld"].as<int>();
 
-  ch1Output = 0;
-  ch2Output = 0;
+  mcp.setChannelValue(MCP4728_CHANNEL_A, ch1uld);
+  mcp.setChannelValue(MCP4728_CHANNEL_B, ch1lld);
+  mcp.setChannelValue(MCP4728_CHANNEL_C, ch2uld);
+  mcp.setChannelValue(MCP4728_CHANNEL_D, ch2lld);
+
+  ch1Value = 0;
+  ch2Value = 0;
+  uld1Value = 0;
+  uld2Value = 0;
 
   String response = "{\"status\":\"Successful\"}";
   server.send(200, "text/plain", response);
 }
 
 void handleResultsGet() {
-  ch1Output = ch1Output + 1;
-  ch2Output = ch2Output + 2;
-
-  String response = "{\"ch1Output\":" + String(ch1Output) + " , " + "\"ch2Output\":" + String(ch2Output) + "}";
+  String response = "{\"ch1Output\":" + String(calcRealCount(ch1Value, uld1Value)) + " , " + "\"ch2Output\":" + String(calcRealCount(ch2Value, uld2Value)) + "}";
   server.send(200, "text/plain", response);
+}
+
+int calcRealCount(int cValue, int uldValue) {
+  return cValue - (uldValue * 2);
 }
