@@ -1,43 +1,43 @@
-#include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
+#include <WiFi.h>
+#include <WebServer.h>
 #include <ArduinoJson.h>
 #include <Adafruit_MCP4728.h>
 #include <Wire.h>
 
-#define CH1_pin 32
-#define ULD1_pin 35
-#define CH2_pin 33
-#define ULD2_pin 25
+#define CH1ULD_pin 32
+#define CH1LLD_pin 35
+#define CH2ULD_pin 33
+#define CH2LLD_pin 25
 
 const char *ssid = "";
 const char *password = "";
 
-int ch1Value;
-int ch2Value;
-int uld1Value;
-int uld2Value;
+int CH1ULDValue;
+int CH1LLDValue;
+int CH2ULDValue;
+int CH2LLDValue;
 
 int ch1Output;
 int ch2Output;
 
-ESP8266WebServer server(80);
+WebServer server(80);
 
 Adafruit_MCP4728 mcp;
 
-void IRAM_ATTR countCH1() {
-  ch1Value = ch1Value + 1;
+void IRAM_ATTR countCH1ULD() {
+  CH1ULDValue = CH1ULDValue + 1;
 }
 
-void IRAM_ATTR countCH2() {
-  ch2Value = ch2Value + 1;
+void IRAM_ATTR countCH1LLD() {
+  CH1LLDValue = CH1LLDValue + 1;
 }
 
-void IRAM_ATTR countULD1() {
-  uld1Value = uld1Value + 1;
+void IRAM_ATTR countCH2ULD() {
+  CH2ULDValue = CH2ULDValue + 1;
 }
 
-void IRAM_ATTR countULD2() {
-  uld2Value = uld2Value + 1;
+void IRAM_ATTR countCH2LLD() {
+  CH2LLDValue = CH2LLDValue + 1;
 }
 
 void setup() {
@@ -56,10 +56,10 @@ void setup() {
     Serial.println("Connecting to WiFi...");
   }
 
-  attachInterrupt(CH1_pin, countCH1, FALLING);
-  attachInterrupt(ULD1_pin, countULD1, FALLING);
-  attachInterrupt(CH2_pin, countCH2, FALLING);
-  attachInterrupt(ULD2_pin, countULD2, FALLING);
+  attachInterrupt(CH1ULD_pin, countCH1ULD, FALLING);
+  attachInterrupt(CH1LLD_pin, countCH1LLD, FALLING);
+  attachInterrupt(CH2ULD_pin, countCH2ULD, FALLING);
+  attachInterrupt(CH2LLD_pin, countCH2LLD, FALLING);
 
   server.on("/", HTTP_GET, handleRoot);
   server.on("/calibrate", HTTP_GET, handleCalibrateGet);
@@ -101,15 +101,15 @@ void handleCalibratePost() {
 
   int lowerLimit = jsonDocument["lowerLimit"].as<int>();
   int upperLimit = jsonDocument["upperLimit"].as<int>();
-  int count = calcRealCount(ch1Value, uld1Value);
+  int count = CH1LLDValue - CH1ULDValue;
 
   if (lowerLimit == 0) {
     count = -1;
   }
 
   if (upperLimit < 4096) {
-    ch1Value = 0;
-    uld1Value = 0;
+    CH1LLDValue = 0;
+    CH1ULDValue = 0;
   }
 
   String response = "{\"count\":" + String(count) + "}";
@@ -139,20 +139,16 @@ void handleConfigPost() {
   mcp.setChannelValue(MCP4728_CHANNEL_C, ch2uld);
   mcp.setChannelValue(MCP4728_CHANNEL_D, ch2lld);
 
-  ch1Value = 0;
-  ch2Value = 0;
-  uld1Value = 0;
-  uld2Value = 0;
+  CH1LLDValue = 0;
+  CH2LLDValue = 0;
+  CH1ULDValue = 0;
+  CH2ULDValue = 0;
 
   String response = "{\"status\":\"Successful\"}";
   server.send(200, "text/plain", response);
 }
 
 void handleResultsGet() {
-  String response = "{\"ch1Output\":" + String(calcRealCount(ch1Value, uld1Value)) + " , " + "\"ch2Output\":" + String(calcRealCount(ch2Value, uld2Value)) + "}";
+  String response = "{\"ch1Output\":" + String(CH1LLDValue - CH1ULDValue) + " , " + "\"ch2Output\":" + String(CH2LLDValue - CH2ULDValue) + "}";
   server.send(200, "text/plain", response);
-}
-
-int calcRealCount(int cValue, int uldValue) {
-  return cValue - (uldValue * 2);
 }
