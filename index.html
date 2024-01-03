@@ -111,8 +111,8 @@
     function validate(value) {
       let parsedValue = parseInt(value);
 
-      if (parsedValue > 4096) {
-        return 4096;
+      if (parsedValue > 4095) {
+        return 4095;
       }
       else if (parsedValue < 0) {
         return 0;

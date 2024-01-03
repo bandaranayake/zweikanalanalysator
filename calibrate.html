@@ -107,8 +107,8 @@
         function validate(value) {
             let parsedValue = parseInt(value);
 
-            if (parsedValue > 4096) {
-                return 4096;
+            if (parsedValue > 4095) {
+                return 4095;
             }
             else if (parsedValue < 1) {
                 return 1;
@@ -124,7 +124,7 @@
             let error = null;
 
             if (!intervalValue) {
-                error = "Enter a value between 1 and 4096";
+                error = "Enter a value between 0 and 4096";
             }
             else if (asyncInterval != null) {
                 error = "Please terminate the running process before proceeding";
